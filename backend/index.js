@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-
+const cookieParser = require("cookie-parser");
 const connection = require("./config/db");
 const userRoute = require("./routes/user.route");
 require("dotenv").config();
@@ -18,7 +18,7 @@ app.use(
 );
 
 app.use(express.json());
-
+app.use(cookieParser());
 app.use("/user", userRoute);
 
 //listen
