@@ -1,11 +1,13 @@
 import { IoSend } from "react-icons/io5";
 import { GrAttachment } from "react-icons/gr";
 import { useEffect, useState } from "react";
+import { MdMarkChatRead } from "react-icons/md";
+import Avatar from "./Avatar";
 // import EmojiPicker from "emoji-picker-react";
 
 export default function Chat() {
   const [message, setMessage] = useState("");
-
+  const [onlineUsers, setOnlineUsers] = useState({});
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -14,8 +16,22 @@ export default function Chat() {
 
     newSocket.addEventListener("message", handleMessage);
   }, []);
+
+  const showOnlineUsers = (people) => {
+    const onlinePeople = {};
+    people.forEach(({ userId, username }) => {
+      onlinePeople[userId] = username;
+    });
+
+    // console.log(onlinePeople);
+    setOnlineUsers(onlinePeople);
+  };
+
   const handleMessage = (e) => {
-    console.log("new message", e.data);
+    const people = JSON.parse(e.data);
+    if ("online" in people) {
+      showOnlineUsers(people.online);
+    }
   };
 
   const handleMessageChange = (e) => {
@@ -40,7 +56,23 @@ export default function Chat() {
 
   return (
     <div className="flex h-screen">
-      <div className=" w-1/5 bg-clr-400">contacts</div>
+      <div className=" w-1/5 bg-clr-500">
+        <div className=" w-[90%] mx-auto mt-2 ">
+          <div className="flex  items-center text-lg font-extrabold gap-2 mb-6 pb-2 border-b-2 border-clr-600">
+            <MdMarkChatRead size={32} />
+            ChatMate
+          </div>
+          {Object.keys(onlineUsers).map((userId) => (
+            <div
+              key={userId}
+              className="py-2 border-b-2 border-clr-600 flex items-center gap-2 "
+            >
+              <Avatar username={onlineUsers[userId]} userId={userId} />
+              <span>{onlineUsers[userId]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className=" w-4/5 flex flex-col">
         <div className="flex-grow">messages with selected person</div>
         <div

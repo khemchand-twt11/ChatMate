@@ -13,6 +13,8 @@ export default {
         "clr-350": "#3F85F3",
         "clr-400": "#F1F2F5",
         "clr-450": "#6E43FB",
+        "clr-500": "#F1F3F6",
+        "clr-600": "#B2C1DC",
       },
     },
   },
