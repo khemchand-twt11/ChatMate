@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model");
 const bcrypt = require("bcrypt");
+const generateToken = require("../utils/authUtils");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const jwtSecret = process.env.JWT_SECRET;
@@ -21,52 +22,31 @@ const Register = async (req, res) => {
       password: hashedPassword,
     });
 
-    // Generate a token
-
-    /*
-      jwt.sign(payload,SECRET,options,callback)
-    */
-
-    jwt.sign(
-      { userId: createdUser._id, username },
-      jwtSecret,
-      { expiresIn: "7d" },
-      (err, token) => {
-        console.log(token, "userid ", createdUser._id);
-        if (err) {
-          // Handle token generation error
-          return res
-            .status(500)
-            .json({ error: err, msg: "failed to generate token" });
-        }
-
-        // Set the token in a cookie
-        res
-          .cookie("chatmateToken", token, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            sameSite: "none",
-            secure: true,
-          })
-          .status(201)
-          .json({
-            id: createdUser._id,
-            username,
-            message: "User registered successfully",
-          });
-      }
-    );
+    const token = await generateToken(createdUser._id, username);
+    res
+      .cookie("chatmateToken", token, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "none",
+        secure: true,
+      })
+      .status(201)
+      .json({
+        id: createdUser._id,
+        username,
+        message: "User registered successfully",
+      });
   } catch (error) {
     res.status(500).json({ error: "Something went wrong at Server" });
   }
 };
 
 const UserProfile = (req, res) => {
-  const token = req.cookies?.token;
+  const token = req.cookies?.chatmateToken;
+  console.log(token);
   if (token) {
-    // console.log(token);
-    jwt.verify(token, jwtsecret, (err, decoded) => {
-      if (err) throw err;
+    jwt.verify(token, jwtSecret, (err, decoded) => {
+      if (err) return res.json({ error: err.message });
       res.status(200).json(decoded);
     });
   } else {
@@ -80,45 +60,35 @@ const Login = async (req, res) => {
   try {
     const user = await userModel.findOne({ email });
 
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    if (!user)
+      return res
+        .status(401)
+        .json({ message: "User Does not exists with this email id" });
 
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Incorrect Password" });
 
-    jwt.sign(
-      { userId: user._id, username: user.username },
-      jwtSecret,
-      { expiresIn: "7d" },
-      (err, token) => {
-        if (err) {
-          return res
-            .status(500)
-            .json({ error: "Failed to generate token", error: err.message });
-        }
+    const token = await generateToken(user._id, user.username);
 
-        res
-          .cookie("token", token, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            sameSite: "none",
-            secure: true,
-          })
-          .status(200)
-          .json({
-            id: user._id,
-            username: user.username,
-            message: "User Login successfully",
-          });
-      }
-    );
+    res
+      .cookie("chatmateToken", token, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "none",
+        secure: true,
+      })
+      .status(200)
+      .json({
+        id: user._id,
+        username: user.username,
+        message: "User Login successfully",
+      });
   } catch (error) {
-    // Handle any other errors that may occur
-    console.log(error);
     res
       .status(500)
-      .json({ message: "Internal server error", error: error.message });
+      .json({ message: "Something went wrong at the server side" });
   }
 };
 
