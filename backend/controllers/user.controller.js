@@ -13,6 +13,7 @@ const Register = async (req, res) => {
       return res
         .status(409)
         .json({ message: "user with same credentials already registered!" });
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const createdUser = await userModel.create({
       username,
@@ -25,19 +26,23 @@ const Register = async (req, res) => {
     /*
       jwt.sign(payload,SECRET,options,callback)
     */
+
     jwt.sign(
       { userId: createdUser._id, username },
       jwtSecret,
       { expiresIn: "7d" },
       (err, token) => {
+        console.log(token, "userid ", createdUser._id);
         if (err) {
           // Handle token generation error
-          return res.status(500).json({ error: "Failed to generate token" });
+          return res
+            .status(500)
+            .json({ error: err, msg: "failed to generate token" });
         }
 
         // Set the token in a cookie
         res
-          .cookie("token", token, {
+          .cookie("chatmateToken", token, {
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 1000,
             sameSite: "none",
@@ -60,7 +65,7 @@ const UserProfile = (req, res) => {
   const token = req.cookies?.token;
   if (token) {
     // console.log(token);
-    jwt.verify(token, jwtSecret, (err, decoded) => {
+    jwt.verify(token, jwtsecret, (err, decoded) => {
       if (err) throw err;
       res.status(200).json(decoded);
     });
